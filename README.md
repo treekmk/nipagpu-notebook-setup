@@ -12,7 +12,6 @@ Run it once in the notebook's web terminal right after launching a new notebook.
 | 3 | Adds the provided SSH public key(s) to `~/.ssh/authorized_keys` |
 | 4 | Sets correct ownership (`{user-name}:users`) and permissions (`755`/`700`/`600`) on the home directory and `.ssh` |
 | 5 | Disables SSH password authentication in `/etc/ssh/sshd_config` and restarts the SSH service |
-| 6 | Installs [uv](https://github.com/astral-sh/uv) (if not already installed) and optionally configures a custom cache directory |
 
 ## Prerequisites
 
@@ -24,8 +23,7 @@ Run it once in the notebook's web terminal right after launching a new notebook.
 ```bash
 bash setup.bash \
     --user-name <name> \
-    --ssh-public-key "<key1>" ["<key2>" ...] \
-    [--uv-cache-dir <dir>]
+    --ssh-public-key "<key1>" ["<key2>" ...]
 ```
 
 ### Arguments
@@ -34,15 +32,13 @@ bash setup.bash \
 |----------|----------|-------------|
 | `--user-name` | Yes | Your Linux username on the notebook (e.g. `kyungminkim`) |
 | `--ssh-public-key` | Yes | One or more SSH public keys to authorize. Quote each key. |
-| `--uv-cache-dir` | No | Custom cache directory for uv (e.g. `/asmp-shared/uv-cache`). Omit to use uv's built-in default. |
 
 ### Example
 
 ```bash
 bash setup.bash \
     --user-name kyungminkim \
-    --ssh-public-key "ssh-ed25519 AAAA...yourkey user@machine" \
-    --uv-cache-dir /asmp-shared/uv-cache
+    --ssh-public-key "ssh-ed25519 AAAA...yourkey user@machine"
 ```
 
 Multiple SSH keys:
@@ -95,14 +91,6 @@ ssh <preferred-name>
 
 > **Important:** Verify that key-based SSH login works **before** closing the web terminal session. The script disables password authentication.
 
-### uv cache on shared storage
-If your notebook is ephemeral and you want to preserve the uv package cache across notebook restarts, point `--uv-cache-dir` at a path on `asmp-shared`:
-
-```bash
---uv-cache-dir /asmp-shared/uv-cache
-```
-
 ## References
 
 - [KakaoCloud SSH guide](https://docs.kakaocloud.com/ha-gpu/guide/ssh-guide)
-- [uv documentation](https://docs.astral.sh/uv/)
