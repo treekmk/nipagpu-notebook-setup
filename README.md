@@ -30,14 +30,14 @@ bash setup.bash \
 
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `--user-name` | Yes | Your Linux username on the notebook (e.g. `kyungminkim`) |
+| `--user-name` | Yes | Your Linux username on the notebook (e.g. `km.kim`) |
 | `--ssh-public-key` | Yes | One or more SSH public keys to authorize. Quote each key. |
 
 ### Example
 
 ```bash
 bash setup.bash \
-    --user-name kyungminkim \
+    --user-name km.kim \
     --ssh-public-key "ssh-ed25519 AAAA...yourkey user@machine"
 ```
 
@@ -45,30 +45,9 @@ Multiple SSH keys:
 
 ```bash
 bash setup.bash \
-    --user-name kyungminkim \
+    --user-name km.kim \
     --ssh-public-key "ssh-ed25519 AAAA...key1 laptop" "ssh-ed25519 AAAA...key2 desktop"
 ```
-
-## Notebook creation checklist (before running this script)
-
-### CPU / RAM
-- GPU 개당 CPU는 최대 239.375~239.5 미만, RAM도 동일 범위 내에서 허용.
-- 전체 서버 제한: CPU 896, RAM 16 TiB.
-- 실제 할당값 = 입력값 + DIND max CPU/RAM + 1.
-
-### Workspace Volume — recommended setup
-1. When prompted for the workspace volume mount path, change it from the default `/home/jovyan` to **`/home/{user-name}`**.  
-   This separates your home directory from `jovyan` and avoids permission issues later.
-2. If attaching an existing volume, click the trash icon on the pre-filled "new volume" row first, then click **+ Attach existing volume**.
-
-### Data Volumes
-- Attach `asmp-shared` (20 TB) and mount it at **`/asmp-shared`** (not under your home directory) to avoid including it in `chown` operations.
-
-### SSH
-- Enable the **SSH** toggle in the notebook creation form.
-
-### Advanced Options (DIND)
-- Only enable DIND if you specifically need Docker-in-Docker; enabling it reduces the effective CPU/RAM available to your notebook.
 
 ## After running this script
 
@@ -88,9 +67,3 @@ Then connect:
 ```bash
 ssh <preferred-name>
 ```
-
-> **Important:** Verify that key-based SSH login works **before** closing the web terminal session. The script disables password authentication.
-
-## References
-
-- [KakaoCloud SSH guide](https://docs.kakaocloud.com/ha-gpu/guide/ssh-guide)
