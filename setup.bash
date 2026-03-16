@@ -87,7 +87,9 @@ echo "    Done."
 # Step 2: Grant passwordless sudo to the user
 # ---------------------------------------------------------------------------
 echo "==> [2/5] Granting passwordless sudo to ${USER_NAME} ..."
-SUDOERS_FILE="/etc/sudoers.d/${USER_NAME}-nopasswd"
+# sudoers.d ignores files containing '.' or ending in '~' — use underscores
+SUDOERS_FILENAME="${USER_NAME//./_}"
+SUDOERS_FILE="/etc/sudoers.d/${SUDOERS_FILENAME}"
 echo "${USER_NAME} ALL=(ALL:ALL) NOPASSWD: ALL" | sudo tee "${SUDOERS_FILE}" > /dev/null
 sudo chmod 440 "${SUDOERS_FILE}"
 echo "    Done."
