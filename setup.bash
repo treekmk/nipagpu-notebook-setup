@@ -7,14 +7,15 @@ set -euo pipefail
 
 usage() {
     cat <<EOF
-Usage: $0 --user-name <name> --ssh-public-key "<key1>" ["<key2>" ...]
+Usage: $0 --user-name <name> [--ssh-public-key "<key1>" ["<key2>" ...]]
 
 Required:
   --user-name       The Linux user name for this notebook (e.g. kyungminkim)
-  --ssh-public-key  One or more SSH public keys to authorize (space-separated,
-                    each key quoted)
 
 Optional:
+  --ssh-public-key  One or more SSH public keys to add to authorized_keys
+                    (space-separated, each key quoted). If omitted, SSH is
+                    still configured but no keys are added.
   -h, --help        Show this help message
 EOF
     exit 1
@@ -63,8 +64,7 @@ if [[ -z "$USER_NAME" ]]; then
 fi
 
 if [[ ${#SSH_KEYS[@]} -eq 0 ]]; then
-    echo "ERROR: at least one --ssh-public-key is required"
-    usage
+    echo "    (no SSH keys provided — skipping key addition to authorized_keys)"
 fi
 
 HOME_DIR="/home/${USER_NAME}"
@@ -72,7 +72,11 @@ HOME_DIR="/home/${USER_NAME}"
 echo "==> Setup configuration:"
 echo "    user-name    : ${USER_NAME}"
 echo "    home-dir     : ${HOME_DIR}"
-echo "    ssh keys     : ${#SSH_KEYS[@]} key(s)"
+if [[ ${#SSH_KEYS[@]} -gt 0 ]]; then
+    echo "    ssh keys     : ${#SSH_KEYS[@]} key(s)"
+else
+    echo "    ssh keys     : (none — will skip key addition)"
+fi
 echo ""
 
 # ---------------------------------------------------------------------------
@@ -103,15 +107,19 @@ AUTH_KEYS="${SSH_DIR}/authorized_keys"
 
 sudo mkdir -p "${SSH_DIR}"
 
-for KEY in "${SSH_KEYS[@]}"; do
-    # Avoid duplicate entries
-    if sudo grep -qF "$KEY" "${AUTH_KEYS}" 2>/dev/null; then
-        echo "    Key already present, skipping: ${KEY:0:40}..."
-    else
-        echo "$KEY" | sudo tee -a "${AUTH_KEYS}" > /dev/null
-        echo "    Added key: ${KEY:0:40}..."
-    fi
-done
+if [[ ${#SSH_KEYS[@]} -gt 0 ]]; then
+    for KEY in "${SSH_KEYS[@]}"; do
+        # Avoid duplicate entries
+        if sudo grep -qF "$KEY" "${AUTH_KEYS}" 2>/dev/null; then
+            echo "    Key already present, skipping: ${KEY:0:40}..."
+        else
+            echo "$KEY" | sudo tee -a "${AUTH_KEYS}" > /dev/null
+            echo "    Added key: ${KEY:0:40}..."
+        fi
+    done
+else
+    echo "    No SSH keys provided — skipping key addition."
+fi
 echo "    Done."
 
 # ---------------------------------------------------------------------------
@@ -121,7 +129,7 @@ echo "==> [4/5] Fixing ownership and permissions ..."
 sudo chown -R "${USER_NAME}:users" "${HOME_DIR}"
 sudo chmod 755 "${HOME_DIR}"
 sudo chmod 700 "${SSH_DIR}"
-sudo chmod 600 "${AUTH_KEYS}"
+[[ -f "${AUTH_KEYS}" ]] && sudo chmod 600 "${AUTH_KEYS}"
 echo "    Done."
 
 # ---------------------------------------------------------------------------
