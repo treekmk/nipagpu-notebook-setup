@@ -84,7 +84,12 @@ echo ""
 # ---------------------------------------------------------------------------
 echo "==> [1/5] Setting home directory to ${HOME_DIR} ..."
 mkdir -p "${HOME_DIR}"
-sudo usermod -d "${HOME_DIR}" "${USER_NAME}"
+if id "${USER_NAME}" &>/dev/null; then
+    sudo usermod -d "${HOME_DIR}" "${USER_NAME}"
+else
+    echo "    User '${USER_NAME}' does not exist — creating ..."
+    sudo useradd -d "${HOME_DIR}" -g users -s /bin/bash "${USER_NAME}"
+fi
 echo "    Done."
 
 # ---------------------------------------------------------------------------
