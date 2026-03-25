@@ -131,7 +131,8 @@ echo "    Done."
 # Step 4: Fix ownership and permissions
 # ---------------------------------------------------------------------------
 echo "==> [4/5] Fixing ownership and permissions ..."
-sudo chown -R "${USER_NAME}:users" "${HOME_DIR}"
+# Only chown files that don't already have the correct ownership
+sudo find "${HOME_DIR}" \( ! -user "${USER_NAME}" -o ! -group users \) -exec chown "${USER_NAME}:users" {} +
 sudo chmod 755 "${HOME_DIR}"
 sudo chmod 700 "${SSH_DIR}"
 [[ -f "${AUTH_KEYS}" ]] && sudo chmod 600 "${AUTH_KEYS}"
