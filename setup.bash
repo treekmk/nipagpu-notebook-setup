@@ -7,7 +7,7 @@ set -euo pipefail
 
 usage() {
     cat <<EOF
-Usage: $0 --user-name <name> [--ssh-public-key "<key1>" ["<key2>" ...]]
+Usage: $0 --user-name <name> [--ssh-public-key "<key1>" ["<key2>" ...]] [--skip-chown]
 
 Required:
   --user-name       The Linux user name for this notebook (e.g. kyungminkim)
@@ -16,6 +16,9 @@ Optional:
   --ssh-public-key  One or more SSH public keys to add to authorized_keys
                     (space-separated, each key quoted). If omitted, SSH is
                     still configured but no keys are added.
+  --skip-chown      Skip the recursive chown of the home directory in step 4.
+                    Use this on re-runs when you know ownership is already
+                    correct — avoids scanning large home directories.
   -h, --help        Show this help message
 EOF
     exit 1
@@ -26,6 +29,7 @@ EOF
 # ---------------------------------------------------------------------------
 USER_NAME=""
 SSH_KEYS=()
+SKIP_CHOWN=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -44,6 +48,10 @@ while [[ $# -gt 0 ]]; do
                 SSH_KEYS+=("$1")
                 shift
             done
+            ;;
+        --skip-chown)
+            SKIP_CHOWN=1
+            shift
             ;;
         -h|--help)
             usage
@@ -131,8 +139,15 @@ echo "    Done."
 # Step 4: Fix ownership and permissions
 # ---------------------------------------------------------------------------
 echo "==> [4/5] Fixing ownership and permissions ..."
-# Only chown files that don't already have the correct ownership
-sudo find "${HOME_DIR}" \( ! -user "${USER_NAME}" -o ! -group users \) -exec chown "${USER_NAME}:users" {} +
+if [[ ${SKIP_CHOWN} -eq 1 ]]; then
+    echo "    --skip-chown set — skipping recursive chown of ${HOME_DIR}"
+    # Still ensure the paths this script just created/modified are correct
+    sudo chown "${USER_NAME}:users" "${HOME_DIR}" "${SSH_DIR}"
+    [[ -f "${AUTH_KEYS}" ]] && sudo chown "${USER_NAME}:users" "${AUTH_KEYS}"
+else
+    # Only chown files that don't already have the correct ownership
+    sudo find "${HOME_DIR}" \( ! -user "${USER_NAME}" -o ! -group users \) -exec chown "${USER_NAME}:users" {} +
+fi
 sudo chmod 755 "${HOME_DIR}"
 sudo chmod 700 "${SSH_DIR}"
 [[ -f "${AUTH_KEYS}" ]] && sudo chmod 600 "${AUTH_KEYS}"
