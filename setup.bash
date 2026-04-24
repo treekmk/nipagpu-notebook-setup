@@ -7,7 +7,7 @@ set -euo pipefail
 
 usage() {
     cat <<EOF
-Usage: $0 --user-name <name> [--ssh-public-key "<key1>" ["<key2>" ...]] [--skip-chown]
+Usage: $0 --user-name <name> [--ssh-public-key "<key1>" ["<key2>" ...]] [--chown-homedir]
 
 Required:
   --user-name       The Linux user name for this notebook (e.g. kyungminkim)
@@ -16,9 +16,11 @@ Optional:
   --ssh-public-key  One or more SSH public keys to add to authorized_keys
                     (space-separated, each key quoted). If omitted, SSH is
                     still configured but no keys are added.
-  --skip-chown      Skip the recursive chown of the home directory in step 4.
-                    Use this on re-runs when you know ownership is already
-                    correct — avoids scanning large home directories.
+  --chown-homedir   Recursively fix ownership of the entire home directory
+                    in step 4. Off by default because scanning large home
+                    directories (conda envs, datasets) is slow; the script
+                    always chowns the paths it creates itself. Use this the
+                    first time you set up, or when ownership is suspect.
   -h, --help        Show this help message
 EOF
     exit 1
@@ -29,7 +31,7 @@ EOF
 # ---------------------------------------------------------------------------
 USER_NAME=""
 SSH_KEYS=()
-SKIP_CHOWN=0
+CHOWN_HOMEDIR=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -49,8 +51,8 @@ while [[ $# -gt 0 ]]; do
                 shift
             done
             ;;
-        --skip-chown)
-            SKIP_CHOWN=1
+        --chown-homedir)
+            CHOWN_HOMEDIR=1
             shift
             ;;
         -h|--help)
@@ -139,14 +141,14 @@ echo "    Done."
 # Step 4: Fix ownership and permissions
 # ---------------------------------------------------------------------------
 echo "==> [4/5] Fixing ownership and permissions ..."
-if [[ ${SKIP_CHOWN} -eq 1 ]]; then
-    echo "    --skip-chown set — skipping recursive chown of ${HOME_DIR}"
-    # Still ensure the paths this script just created/modified are correct
-    sudo chown "${USER_NAME}:users" "${HOME_DIR}" "${SSH_DIR}"
-    [[ -f "${AUTH_KEYS}" ]] && sudo chown "${USER_NAME}:users" "${AUTH_KEYS}"
-else
+if [[ ${CHOWN_HOMEDIR} -eq 1 ]]; then
+    echo "    --chown-homedir set — scanning ${HOME_DIR} for wrong ownership ..."
     # Only chown files that don't already have the correct ownership
     sudo find "${HOME_DIR}" \( ! -user "${USER_NAME}" -o ! -group users \) -exec chown "${USER_NAME}:users" {} +
+else
+    # Default: only chown the paths this script itself creates/modifies
+    sudo chown "${USER_NAME}:users" "${HOME_DIR}" "${SSH_DIR}"
+    [[ -f "${AUTH_KEYS}" ]] && sudo chown "${USER_NAME}:users" "${AUTH_KEYS}"
 fi
 sudo chmod 755 "${HOME_DIR}"
 sudo chmod 700 "${SSH_DIR}"
